@@ -1,0 +1,29 @@
+### Java / Gradle (backend/) ###
+.gradle/
+build/
+target/
+*.class
+!gradle/wrapper/gradle-wrapper.jar
+
+### Terraform (infrastructure/) ###
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+crash.*.log
+
+### Node ###
+# frontend/ has its own .gitignore for node_modules, .expo, etc.
+node_modules/
+
+### Environment ###
+.env
+.env.*
+!.env.example
+
+### OS / Editors ###
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

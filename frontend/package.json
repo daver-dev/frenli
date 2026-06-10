@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo/metro-runtime": "~56.0.13",
+    "@expo/vector-icons": "^15.1.1",
+    "babel-preset-expo": "^56.0.14",
     "expo": "~56.0.8",
     "expo-constants": "~56.0.16",
     "expo-dev-client": "~56.0.18",
@@ -14,14 +16,18 @@
     "expo-status-bar": "~56.0.4",
     "expo-symbols": "~56.0.5",
     "expo-web-browser": "~56.0.5",
+    "nativewind": "^4.2.5",
+    "prettier-plugin-tailwindcss": "^0.5.14",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.85.3",
-    "react-native-reanimated": "4.3.1",
+    "react-native-paper": "^5.15.3",
+    "react-native-reanimated": "^4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
     "react-native-web": "^0.21.2",
-    "react-native-worklets": "0.8.3"
+    "react-native-worklets": "0.8.3",
+    "tailwindcss": "^3.4.19"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
@@ -32,8 +38,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "expo login": "eas login",
-    "expo build apk": "eas build --profile development --platform android"
+    "expo-login": "eas login",
+    "expo-build-apk": "eas build --profile development --platform android",
+    "icon-browser": "npx @expo/vector-icons"
   },
   "private": true
 }
