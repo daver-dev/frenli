@@ -1,18 +1,21 @@
-import { StyleSheet } from "react-native";
+import { FlatList, ListRenderItem, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import EditScreenInfo from "@/components/EditScreenInfo";
-import { Text, View } from "@/components/Themed";
+import EditScreenInfo from "@/components/expo/EditScreenInfo";
+import { Text, View } from "@/components/expo/Themed";
+import { PostCard } from "@/components/main/PostCard";
+import { POSTS } from "@/mocks/posts";
+import { Post } from "@/types";
+
+const renderPost: ListRenderItem<Post> = ({ item }) => {
+  return <PostCard post={item} />;
+};
 
 export default function TabOneScreen() {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View
-        style={styles.separator}
-        lightColor="#eee"
-        darkColor="rgba(255,255,255,0.1)"
-      />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <FlatList data={POSTS} renderItem={renderPost} />
     </View>
   );
 }
@@ -20,16 +23,5 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: "80%",
   },
 });
