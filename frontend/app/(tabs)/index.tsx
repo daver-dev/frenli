@@ -14,8 +14,12 @@ const renderPost: ListRenderItem<Post> = ({ item }) => {
 export default function TabOneScreen() {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <FlatList data={POSTS} renderItem={renderPost} />
+    <View style={[styles.container]}>
+      <FlatList
+        showsVerticalScrollIndicator={false}
+        data={POSTS}
+        renderItem={renderPost}
+      />
     </View>
   );
 }

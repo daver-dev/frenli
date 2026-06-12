@@ -25,33 +25,6 @@ backend/infra milestones, since several tasks depend on these choices.
 | IaC             | **Terraform**, remote state in S3 + DynamoDB lock table      | Standard, your stated requirement.                                                                                                                                                                               |
 | CI/CD           | **GitHub Actions + OIDC to AWS** (no long-lived access keys) | Best practice, avoids storing AWS secrets in GitHub.                                                                                                                                                             |
 
-### Why DynamoDB everywhere (the NAT Gateway trap)
-
-This is the most important cost lesson for serverless on AWS, so it's worth
-understanding rather than just taking on faith:
-
-- RDS (Postgres) normally lives in a private subnet for security.
-- Lambda functions that need to reach RDS must also be attached to that VPC.
-- VPC-attached Lambdas need a **NAT Gateway** to reach the public internet
-  (e.g., to call Cognito's JWKS endpoint, or Expo's push API).
-- A NAT Gateway costs **~$32/month by itself** — regardless of traffic. This
-  single line item would dwarf everything else in the architecture.
-
-DynamoDB, S3, Cognito, and API Gateway are all reachable from Lambda over the
-AWS network **without a VPC at all**, so choosing DynamoDB as the primary
-datastore avoids the NAT Gateway entirely and keeps the whole stack inside (or
-very close to) the free tier indefinitely.
-
-**Trade-off:** DynamoDB requires designing your data model around access
-patterns up front (often "single-table design"), which is a different — and
-initially harder — way of thinking than JPA/relational tables. Given this
-project is partly about learning, that's not a bad thing, but flagging it so
-it's a deliberate choice, not a surprise. If you later decide relational
-queries matter more than the NAT cost, RDS + Spring Data JPA is a drop-in
-alternative for Milestone 4 — just budget for the NAT Gateway (or research
-whether Aurora Serverless v2's "scale to zero" + Data API has matured enough
-to avoid it; this changes often, so check current docs).
-
 ---
 
 ## Target repo structure
@@ -87,6 +60,8 @@ Continuation of what's already in `notes.txt` / in progress:
 - [ ] Messages page: mock conversation list + mock thread view
 - [ ] Notifications page: mock list (likes, follows, comments, messages)
 - [ ] Post creation screen: image picker UI + caption input (mock submit)
+- [ ] Comments: mock comments list per post (e.g. post detail view) +
+      add-comment input (mock submit)
 - [ ] Settings page: basic structure (account, logout placeholder, etc.)
 - [ ] Auth screens (login / signup / forgot password) — UI only, mock submit
 - [ ] Confirm tab navigation covers all 5 sections (feed, messages,

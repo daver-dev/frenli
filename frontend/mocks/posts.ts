@@ -22,7 +22,7 @@ export const POSTS: Post[] = [
     caption: "New coffee spot downtown ☕",
     createdAt: "2026-06-09T09:15:00.000Z",
     likeCount: 7,
-    commentCount: 1,
+    commentCount: 0,
   },
   {
     id: "post-3",
@@ -44,7 +44,7 @@ export const POSTS: Post[] = [
     caption: "Beach day! 🏖️",
     createdAt: "2026-06-04T16:20:00.000Z",
     likeCount: 15,
-    commentCount: 2,
+    commentCount: 0,
   },
   {
     id: "post-5",
@@ -66,7 +66,7 @@ export const POSTS: Post[] = [
     caption: "Movie night picks 🍿",
     createdAt: "2026-06-02T21:30:00.000Z",
     likeCount: 5,
-    commentCount: 2,
+    commentCount: 0,
   },
   {
     id: "post-7",
@@ -77,7 +77,7 @@ export const POSTS: Post[] = [
     caption: "Garden's coming along nicely 🌱",
     createdAt: "2026-06-01T08:10:00.000Z",
     likeCount: 18,
-    commentCount: 3,
+    commentCount: 0,
   },
   {
     id: "post-8",
@@ -88,7 +88,7 @@ export const POSTS: Post[] = [
     caption: "Game night was chaos 😂",
     createdAt: "2026-05-31T22:00:00.000Z",
     likeCount: 11,
-    commentCount: 6,
+    commentCount: 0,
   },
   {
     id: "post-9",
@@ -99,7 +99,7 @@ export const POSTS: Post[] = [
     caption: "New kicks 👟",
     createdAt: "2026-05-30T13:45:00.000Z",
     likeCount: 6,
-    commentCount: 1,
+    commentCount: 0,
   },
   {
     id: "post-10",
@@ -110,7 +110,7 @@ export const POSTS: Post[] = [
     caption: "Sunset from the rooftop",
     createdAt: "2026-05-29T19:55:00.000Z",
     likeCount: 24,
-    commentCount: 2,
+    commentCount: 0,
   },
   {
     id: "post-11",
@@ -132,7 +132,7 @@ export const POSTS: Post[] = [
     caption: "Road trip playlist is locked in 🎶",
     createdAt: "2026-05-27T10:15:00.000Z",
     likeCount: 8,
-    commentCount: 1,
+    commentCount: 0,
   },
   {
     id: "post-13",
@@ -143,7 +143,7 @@ export const POSTS: Post[] = [
     caption: "Coffee + book = perfect morning",
     createdAt: "2026-05-26T07:40:00.000Z",
     likeCount: 14,
-    commentCount: 2,
+    commentCount: 0,
   },
   {
     id: "post-14",
@@ -154,7 +154,7 @@ export const POSTS: Post[] = [
     caption: "Caught the game last night",
     createdAt: "2026-05-25T22:45:00.000Z",
     likeCount: 10,
-    commentCount: 3,
+    commentCount: 0,
   },
   {
     id: "post-15",
@@ -165,7 +165,7 @@ export const POSTS: Post[] = [
     caption: "Weekend farmers market haul 🥕",
     createdAt: "2026-05-24T10:00:00.000Z",
     likeCount: 16,
-    commentCount: 4,
+    commentCount: 0,
   },
 ];
 

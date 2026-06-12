@@ -1,11 +1,9 @@
-import { Link, Tabs } from "expo-router";
-import { SymbolView } from "expo-symbols";
-import { Pressable } from "react-native";
-
-import { useClientOnlyValue } from "@/components/expo/useClientOnlyValue";
+import { Tabs } from "expo-router";
 import { useColorScheme } from "@/components/expo/useColorScheme";
+import { FeedHeader } from "@/components/main/FeedHeader";
 import Colors from "@/constants/Colors";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { StyleSheet, Image } from "react-native";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -15,7 +13,10 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme].tint,
         tabBarShowLabel: false,
-        headerShown: false,
+        headerShown: true,
+        header: () => <FeedHeader />,
+        tabBarStyle: styles.footerBar,
+        headerStatusBarHeight: 0,
       }}
     >
       <Tabs.Screen
@@ -25,19 +26,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <FontAwesome name="home" size={25} color={color} />
           ),
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable style={{ marginRight: 15 }}>
-                {({ pressed }) => (
-                  <SymbolView
-                    name={{ ios: "info.circle", android: "info", web: "info" }}
-                    size={25}
-                    tintColor={Colors[colorScheme].text}
-                    style={{ opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
+        }}
+      />
+      <Tabs.Screen
+        name="post"
+        options={{
+          title: "Post",
+          tabBarIcon: ({ color }) => (
+            <FontAwesome name="plus" size={25} color={color} />
           ),
         }}
       />
@@ -46,10 +42,45 @@ export default function TabLayout() {
         options={{
           title: "Messages",
           tabBarIcon: ({ color }) => (
-            <FontAwesome name="send" size={25} color={color} />
+            <FontAwesome name="send" size={20} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: "Search",
+          tabBarIcon: ({ color }) => (
+            <FontAwesome name="search" size={20} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: "Notifications",
+          tabBarIcon: ({ color }) => (
+            <FontAwesome name="heart" size={20} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: () => (
+            <Image
+              source={{ uri: "https://i.pravatar.cc/150?u=alex" }}
+              style={styles.avatarImage}
+            />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  avatarImage: { width: 30, height: 30, borderRadius: 30, alignSelf: "center" },
+  footerBar: { height: 70, paddingTop: 5 },
+});

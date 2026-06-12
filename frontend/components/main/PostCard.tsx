@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     width: "100%",
     gap: 10,
-    padding: 10,
+    padding: 8,
     alignSelf: "center",
   },
   titleBar: {

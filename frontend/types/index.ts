@@ -15,6 +15,16 @@ export interface Post {
   commentCount: number;
 }
 
+export interface Comment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorUsername: string;
+  authorAvatarUrl: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface UserProfile {
   id: string;
   username: string;
