@@ -1,13 +1,14 @@
+import "react-native-reanimated";
 import "../global.css";
 import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import "react-native-reanimated";
 
 import { useColorScheme } from "@/components/expo/useColorScheme";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { CommentsProvider } from "@/context/CommentsContext";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -51,14 +52,16 @@ function RootLayoutNav() {
   return (
     <GestureHandlerRootView>
       <BottomSheetModalProvider>
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: "modal" }} />
-          </Stack>
-        </ThemeProvider>
+        <CommentsProvider>
+          <ThemeProvider
+            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          >
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+            </Stack>
+          </ThemeProvider>
+        </CommentsProvider>
       </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );

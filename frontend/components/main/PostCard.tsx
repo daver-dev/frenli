@@ -11,10 +11,12 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { useComments } from "@/context/CommentsContext";
 
 type PostCardProps = { post: Post };
 
 export const PostCard = (props: PostCardProps) => {
+  const { openComments } = useComments();
   const { post } = props;
   const [isLiked, setIsLiked] = useState(false);
   const themeTextColor = useThemeColor({}, "text");
@@ -47,20 +49,26 @@ export const PostCard = (props: PostCardProps) => {
                 );
               }}
             >
-              <Octicons
-                name={isLiked ? "heart-fill" : "heart"}
-                size={25}
-                color={isLiked ? "red" : themeTextColor}
-              />
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <Octicons
+                  name={isLiked ? "heart-fill" : "heart"}
+                  size={25}
+                  color={isLiked ? "red" : themeTextColor}
+                />
+                <Text style={{ alignSelf: "center" }}>{post.likeCount}</Text>
+              </View>
             </Pressable>
           </Animated.View>
-          <Text>{post.likeCount}</Text>
-          <Octicons
-            name="comment"
-            size={25}
-            color={useThemeColor({}, "text")}
-          />
-          <Text>{post.commentCount}</Text>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <Pressable onPress={() => openComments(post.id)}>
+              <Octicons
+                name="comment"
+                size={25}
+                color={useThemeColor({}, "text")}
+              />
+            </Pressable>
+            <Text style={{ alignSelf: "center" }}>{post.commentCount}</Text>
+          </View>
         </View>
         <View style={styles.caption}>
           <Text style={styles.username}>{post.authorUsername}</Text>
