@@ -1,4 +1,9 @@
-import { Text, View as ThemedView } from "@/components/expo/Themed";
+import {
+  Text,
+  View as ThemedView,
+  useThemeColor,
+} from "@/components/expo/Themed";
+import { CommentList } from "@/components/main/CommentList";
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import { createContext, ReactNode, useContext, useRef, useState } from "react";
 import { Modal, Platform, StyleSheet, View } from "react-native";
@@ -12,6 +17,8 @@ const CommentsContext = createContext<CommentsContextValue | undefined>(
 );
 
 export const CommentsProvider = (props: { children: ReactNode }) => {
+  const commentsBackgroundColor = useThemeColor({}, "overlay");
+  const commentsTextColor = useThemeColor({}, "background");
   const { children } = props;
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isWebModalVisible, setIsWebModalVisible] = useState(false);
@@ -35,9 +42,14 @@ export const CommentsProvider = (props: { children: ReactNode }) => {
           animationType="fade"
           onRequestClose={() => setIsWebModalVisible(false)}
         >
-          <View style={styles.webModalBackdrop}>
+          <View
+            style={
+              (styles.webModalBackdrop,
+              { backgroundColor: commentsBackgroundColor })
+            }
+          >
             <ThemedView style={styles.webModalContent}>
-              <Text>placeholder</Text>
+              <CommentList postId={selectedPostId ?? ""} />
             </ThemedView>
           </View>
         </Modal>
@@ -46,9 +58,10 @@ export const CommentsProvider = (props: { children: ReactNode }) => {
           ref={bottomSheetRef}
           snapPoints={["80%"]}
           enableDynamicSizing={false}
+          backgroundStyle={{ backgroundColor: commentsBackgroundColor }}
         >
           <BottomSheetView>
-            <Text>placeholder</Text>
+            <CommentList postId={selectedPostId ?? ""} />
           </BottomSheetView>
         </BottomSheetModal>
       )}
@@ -68,7 +81,6 @@ export const useComments = () => {
 const styles = StyleSheet.create({
   webModalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
   },

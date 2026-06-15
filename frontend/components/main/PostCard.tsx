@@ -24,6 +24,10 @@ export const PostCard = (props: PostCardProps) => {
   const heartAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: heartScale.value }],
   }));
+  const commentButtonScale = useSharedValue(1);
+  const commentButtonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: commentButtonScale.value }],
+  }));
 
   return (
     <>
@@ -60,13 +64,24 @@ export const PostCard = (props: PostCardProps) => {
             </Pressable>
           </Animated.View>
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <Pressable onPress={() => openComments(post.id)}>
-              <Octicons
-                name="comment"
-                size={25}
-                color={useThemeColor({}, "text")}
-              />
-            </Pressable>
+            <Animated.View style={commentButtonAnimatedStyle}>
+              <Pressable
+                onPress={() => {
+                  openComments(post.id);
+                  commentButtonScale.value = withSequence(
+                    withTiming(0.8, { duration: 130 }),
+                    withTiming(1.1, { duration: 80 }),
+                    withTiming(1, { duration: 80 }),
+                  );
+                }}
+              >
+                <Octicons
+                  name="comment"
+                  size={25}
+                  color={useThemeColor({}, "text")}
+                />
+              </Pressable>
+            </Animated.View>
             <Text style={{ alignSelf: "center" }}>{post.commentCount}</Text>
           </View>
         </View>

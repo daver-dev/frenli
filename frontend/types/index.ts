@@ -23,6 +23,9 @@ export interface Comment {
   authorAvatarUrl: string;
   text: string;
   createdAt: string;
+  likeCount: number;
+  replyCount: number;
+  parentCommentId?: string;
 }
 
 export interface UserProfile {
