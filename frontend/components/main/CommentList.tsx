@@ -81,7 +81,9 @@ const CommentItem = (props: CommentProps) => {
 };
 
 export const CommentList = (props: CommentListProps) => {
-  const [currentComments, setCurrentComments] = useState<Comment[]>([]);
+  const [currentComments, setCurrentComments] = useState<Comment[] | null>(
+    null,
+  );
   useEffect(() => {
     const loadComments = async () => {
       const page = await getComments(props.postId);
@@ -99,6 +101,11 @@ export const CommentList = (props: CommentListProps) => {
         renderItem={renderComment}
         contentContainerStyle={styles.commentListContainer}
       />
+      {currentComments?.length == 0 ? (
+        <Text style={{ textAlign: "center" }}>No comments yet!</Text>
+      ) : (
+        <></>
+      )}
     </View>
   );
 };
