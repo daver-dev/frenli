@@ -41,9 +41,9 @@ export const PostCard = (props: PostCardProps) => {
         </View>
         <Image source={{ uri: post.imageUrl }} style={styles.postImage} />
         <View style={styles.bottomBar}>
-          <Octicons></Octicons>
           <Animated.View style={heartAnimatedStyle}>
             <Pressable
+              hitSlop={4}
               onPress={() => {
                 setIsLiked(!isLiked);
                 heartScale.value = withSequence(
@@ -66,6 +66,7 @@ export const PostCard = (props: PostCardProps) => {
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Animated.View style={commentButtonAnimatedStyle}>
               <Pressable
+                hitSlop={4}
                 onPress={() => {
                   openComments(post.id);
                   commentButtonScale.value = withSequence(

@@ -4,9 +4,10 @@ import {
   useThemeColor,
 } from "@/components/expo/Themed";
 import { CommentList } from "@/components/main/CommentList";
+import { Octicons } from "@expo/vector-icons";
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import { createContext, ReactNode, useContext, useRef, useState } from "react";
-import { Modal, Platform, StyleSheet, View } from "react-native";
+import { Modal, Platform, Pressable, StyleSheet, View } from "react-native";
 
 interface CommentsContextValue {
   openComments: (postId: string) => void;
@@ -42,16 +43,31 @@ export const CommentsProvider = (props: { children: ReactNode }) => {
           animationType="fade"
           onRequestClose={() => setIsWebModalVisible(false)}
         >
-          <View
-            style={
-              (styles.webModalBackdrop,
-              { backgroundColor: commentsBackgroundColor })
-            }
+          <Pressable
+            style={styles.webModalBackdrop}
+            onPress={(e) => {
+              if (e.target === e.currentTarget) {
+                setIsWebModalVisible(false);
+              }
+            }}
           >
-            <ThemedView style={styles.webModalContent}>
+            <ThemedView
+              style={[
+                styles.webModalContent,
+                { backgroundColor: commentsBackgroundColor },
+              ]}
+            >
+              <Pressable
+                onPress={() => {
+                  setIsWebModalVisible(false);
+                }}
+                style={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}
+              >
+                <Octicons name="x" size={20} />
+              </Pressable>
               <CommentList postId={selectedPostId ?? ""} />
             </ThemedView>
-          </View>
+          </Pressable>
         </Modal>
       ) : (
         <BottomSheetModal
@@ -83,10 +99,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    cursor: "default",
   },
   webModalContent: {
-    width: "40%",
-    height: "70%",
+    minWidth: 490,
     borderRadius: 12,
+    minHeight: 500,
   },
 });
