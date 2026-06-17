@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { Text, useThemeColor } from "../expo/Themed";
-import { getComments } from "@/mocks/comments";
+import { getComments, getReplies } from "@/mocks/comments";
 import { useEffect, useState } from "react";
 import Animated, {
   useAnimatedStyle,
@@ -31,51 +31,98 @@ const renderComment: ListRenderItem<Comment> = ({ item }) => {
 };
 
 const CommentItem = (props: CommentProps) => {
+  const { comment } = props;
   const [isLiked, setIsLiked] = useState(false);
+  const [replies, setReplies] = useState<Comment[]>([]);
+  const [showingReplies, setShowingReplies] = useState<boolean>(false);
+  useEffect(() => {
+    const loadReplies = async () => {
+      const initialRepliesPage = await getReplies(comment.postId, comment.id);
+      setReplies(initialRepliesPage.items);
+    };
+    loadReplies();
+  }, [comment.postId, comment.id]);
+
   const themeTextColor = useThemeColor({}, "text");
+  const grayTextColor = useThemeColor(
+    { light: "#4c4c4c", dark: "#a4a4a4" },
+    "text",
+  );
   const heartScale = useSharedValue(1);
   const heartAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: heartScale.value }],
   }));
 
+  const CommentOrReply = () => {
+    return (
+      <View style={styles.commentPartsContainer}>
+        <Image
+          source={{ uri: comment.authorAvatarUrl }}
+          style={styles.commenterAvatar}
+        />
+        <View style={styles.commentText}>
+          <Text style={styles.commenterNameText}>{comment.authorUsername}</Text>
+          <Text>{comment.text}</Text>
+        </View>
+        <View style={styles.commentLikesContainer}>
+          <Animated.View style={heartAnimatedStyle}>
+            <Pressable
+              hitSlop={4}
+              onPress={() => {
+                setIsLiked(!isLiked);
+                heartScale.value = withSequence(
+                  withTiming(0.8, { duration: 130 }),
+                  withTiming(1.1, { duration: 80 }),
+                  withTiming(1, { duration: 80 }),
+                );
+              }}
+            >
+              <View style={{ gap: 4 }}>
+                <Octicons
+                  name={isLiked ? "heart-fill" : "heart"}
+                  size={12}
+                  color={isLiked ? "red" : themeTextColor}
+                />
+                <Text style={{ alignSelf: "center" }}>{comment.likeCount}</Text>
+              </View>
+            </Pressable>
+          </Animated.View>
+        </View>
+      </View>
+    );
+  };
+
   return (
-    <View style={styles.commentPartsContainer}>
-      <Image
-        source={{ uri: props.comment.authorAvatarUrl }}
-        style={styles.commenterAvatar}
-      />
-      <View style={styles.commentText}>
-        <Text style={styles.commenterNameText}>
-          {props.comment.authorUsername}
-        </Text>
-        <Text>{props.comment.text}</Text>
-      </View>
-      <View style={styles.commentLikesContainer}>
-        <Animated.View style={heartAnimatedStyle}>
-          <Pressable
-            hitSlop={4}
-            onPress={() => {
-              setIsLiked(!isLiked);
-              heartScale.value = withSequence(
-                withTiming(0.8, { duration: 130 }),
-                withTiming(1.1, { duration: 80 }),
-                withTiming(1, { duration: 80 }),
-              );
-            }}
-          >
-            <View style={{ gap: 4 }}>
-              <Octicons
-                name={isLiked ? "heart-fill" : "heart"}
-                size={12}
-                color={isLiked ? "red" : themeTextColor}
-              />
-              <Text style={{ alignSelf: "center" }}>
-                {props.comment.likeCount}
-              </Text>
-            </View>
-          </Pressable>
-        </Animated.View>
-      </View>
+    <View>
+      <CommentOrReply />
+      {showingReplies ? (
+        <FlatList
+          showsVerticalScrollIndicator={false}
+          data={replies}
+          renderItem={renderComment}
+          style={{ paddingLeft: 50 }}
+          contentContainerStyle={
+            (styles.commentListContainer, { paddingLeft: 30 })
+          }
+        />
+      ) : (
+        <></>
+      )}
+      {replies.length ? (
+        <Pressable
+          onPress={() => {
+            setShowingReplies(!showingReplies);
+          }}
+        >
+          <Text style={[styles.commentRepliesButton, { color: grayTextColor }]}>
+            {showingReplies
+              ? "- Hide Replies"
+              : `- Show Replies (${comment.replyCount})`}
+          </Text>
+        </Pressable>
+      ) : (
+        <></>
+      )}
     </View>
   );
 };
@@ -91,9 +138,10 @@ export const CommentList = (props: CommentListProps) => {
     };
     loadComments();
   }, [props.postId]);
+  const themeTextColor = useThemeColor({}, "text");
 
   return (
-    <View style={{ gap: 12, padding: 8 }}>
+    <View style={{ gap: 12, padding: 8, flex: 1 }}>
       <Text style={styles.commentsTitle}>Comments</Text>
       <FlatList
         showsVerticalScrollIndicator={false}
@@ -106,6 +154,9 @@ export const CommentList = (props: CommentListProps) => {
       ) : (
         <></>
       )}
+      <View style={[styles.commentTextBox, { outlineColor: themeTextColor }]}>
+        <Text>yo</Text>
+      </View>
     </View>
   );
 };
@@ -122,9 +173,9 @@ export const styles = StyleSheet.create({
   commentText: { flex: 6, paddingHorizontal: 8, gap: 2 },
   commenterNameText: { fontWeight: "bold" },
   commenterAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 42,
+    width: 36,
+    height: 36,
+    borderRadius: 36,
   },
   commentLikesContainer: {
     flex: 1,
@@ -132,5 +183,11 @@ export const styles = StyleSheet.create({
     paddingRight: 8,
     paddingTop: 8,
   },
-  grayText: {},
+  commentRepliesButton: {
+    paddingLeft: 50,
+    paddingVertical: 4,
+    fontWeight: 500,
+    fontSize: 13,
+  },
+  commentTextBox: { outlineStyle: "solid", outlineWidth: 1 },
 });

@@ -122,10 +122,11 @@ export function getComments(
 export function getReplies(
   postId: string,
   parentCommentId: string,
+  itemsPerPage?: number,
   cursor?: string,
 ): Promise<Page<Comment>> {
   const replies = (COMMENTS[postId] ?? []).filter(
     (comment) => comment.parentCommentId === parentCommentId,
   );
-  return Promise.resolve(paginate(replies, cursor));
+  return Promise.resolve(paginate(replies, cursor, itemsPerPage));
 }

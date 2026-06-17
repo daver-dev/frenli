@@ -7,7 +7,15 @@ import { CommentList } from "@/components/main/CommentList";
 import { Octicons } from "@expo/vector-icons";
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import { createContext, ReactNode, useContext, useRef, useState } from "react";
-import { Modal, Platform, Pressable, StyleSheet, View } from "react-native";
+import {
+  CursorValue,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface CommentsContextValue {
   openComments: (postId: string) => void;
@@ -18,6 +26,7 @@ const CommentsContext = createContext<CommentsContextValue | undefined>(
 );
 
 export const CommentsProvider = (props: { children: ReactNode }) => {
+  const insets = useSafeAreaInsets();
   const commentsBackgroundColor = useThemeColor({}, "overlay");
   const commentsTextColor = useThemeColor({}, "background");
   const { children } = props;
@@ -76,9 +85,9 @@ export const CommentsProvider = (props: { children: ReactNode }) => {
           enableDynamicSizing={false}
           backgroundStyle={{ backgroundColor: commentsBackgroundColor }}
         >
-          <BottomSheetView>
+          <View style={{ flex: 1, paddingBottom: insets.bottom }}>
             <CommentList postId={selectedPostId ?? ""} />
-          </BottomSheetView>
+          </View>
         </BottomSheetModal>
       )}
     </CommentsContext.Provider>
@@ -100,7 +109,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.4)",
-    cursor: "default",
+    cursor: "default" as CursorValue,
   },
   webModalContent: {
     minWidth: 490,
