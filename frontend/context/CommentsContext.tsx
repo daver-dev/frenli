@@ -74,7 +74,10 @@ export const CommentsProvider = (props: { children: ReactNode }) => {
               >
                 <Octicons name="x" size={20} />
               </Pressable>
-              <CommentList postId={selectedPostId ?? ""} />
+              <CommentList
+                postId={selectedPostId ?? ""}
+                loggedInUserAvatarUrl={}
+              />
             </ThemedView>
           </Pressable>
         </Modal>
@@ -86,7 +89,10 @@ export const CommentsProvider = (props: { children: ReactNode }) => {
           backgroundStyle={{ backgroundColor: commentsBackgroundColor }}
         >
           <View style={{ flex: 1, paddingBottom: insets.bottom }}>
-            <CommentList postId={selectedPostId ?? ""} />
+            <CommentList
+              postId={selectedPostId ?? ""}
+              loggedInUserAvatarUrl=""
+            />
           </View>
         </BottomSheetModal>
       )}
@@ -95,11 +101,11 @@ export const CommentsProvider = (props: { children: ReactNode }) => {
 };
 
 export const useComments = () => {
-  const context = useContext(CommentsContext);
-  if (context == undefined) {
+  const commentContext = useContext(CommentsContext);
+  if (commentContext == undefined) {
     throw new Error("useComments was called outside CommentsProvider");
   } else {
-    return context;
+    return commentContext;
   }
 };
 

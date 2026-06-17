@@ -21,6 +21,7 @@ import Octicons from "@expo/vector-icons/Octicons";
 
 export type CommentListProps = {
   postId: string;
+  loggedInUserAvatarUrl: string;
 };
 export type CommentProps = {
   comment: Comment;
@@ -58,7 +59,7 @@ const CommentItem = (props: CommentProps) => {
       <View style={styles.commentPartsContainer}>
         <Image
           source={{ uri: comment.authorAvatarUrl }}
-          style={styles.commenterAvatar}
+          style={styles.avatar}
         />
         <View style={styles.commentText}>
           <Text style={styles.commenterNameText}>{comment.authorUsername}</Text>
@@ -154,6 +155,10 @@ export const CommentList = (props: CommentListProps) => {
       ) : (
         <></>
       )}
+      <Image
+        style={styles.avatar}
+        source={{ uri: props.loggedInUserAvatarUrl }}
+      />
       <View style={[styles.commentTextBox, { outlineColor: themeTextColor }]}>
         <Text>yo</Text>
       </View>
@@ -172,7 +177,7 @@ export const styles = StyleSheet.create({
   commentsTitle: { fontSize: 18, alignSelf: "center" },
   commentText: { flex: 6, paddingHorizontal: 8, gap: 2 },
   commenterNameText: { fontWeight: "bold" },
-  commenterAvatar: {
+  avatar: {
     width: 36,
     height: 36,
     borderRadius: 36,
@@ -189,5 +194,9 @@ export const styles = StyleSheet.create({
     fontWeight: 500,
     fontSize: 13,
   },
-  commentTextBox: { outlineStyle: "solid", outlineWidth: 1 },
+  commentTextBox: {
+    outlineStyle: "solid",
+    outlineWidth: 1,
+    marginHorizontal: 20,
+  },
 });
