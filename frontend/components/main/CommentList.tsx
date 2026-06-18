@@ -4,13 +4,15 @@ import {
   FlatList,
   Image,
   ListRenderItem,
+  Platform,
   Pressable,
   StyleSheet,
+  TextInput,
   View,
 } from "react-native";
 import { Text, useThemeColor } from "../expo/Themed";
 import { getComments, getReplies } from "@/mocks/comments";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -18,10 +20,11 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Octicons from "@expo/vector-icons/Octicons";
+import { useLoggedInUser } from "@/context/LoggedInUserContext";
+import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 
 export type CommentListProps = {
   postId: string;
-  loggedInUserAvatarUrl: string;
 };
 export type CommentProps = {
   comment: Comment;
@@ -64,6 +67,11 @@ const CommentItem = (props: CommentProps) => {
         <View style={styles.commentText}>
           <Text style={styles.commenterNameText}>{comment.authorUsername}</Text>
           <Text>{comment.text}</Text>
+          <Pressable>
+            <Text style={[styles.replyButton, { color: grayTextColor }]}>
+              Reply
+            </Text>
+          </Pressable>
         </View>
         <View style={styles.commentLikesContainer}>
           <Animated.View style={heartAnimatedStyle}>
@@ -101,7 +109,7 @@ const CommentItem = (props: CommentProps) => {
           showsVerticalScrollIndicator={false}
           data={replies}
           renderItem={renderComment}
-          style={{ paddingLeft: 50 }}
+          style={{ paddingLeft: 50, paddingTop: 4 }}
           contentContainerStyle={
             (styles.commentListContainer, { paddingLeft: 30 })
           }
@@ -115,7 +123,9 @@ const CommentItem = (props: CommentProps) => {
             setShowingReplies(!showingReplies);
           }}
         >
-          <Text style={[styles.commentRepliesButton, { color: grayTextColor }]}>
+          <Text
+            style={[styles.showCommentRepliesButton, { color: grayTextColor }]}
+          >
             {showingReplies
               ? "- Hide Replies"
               : `- Show Replies (${comment.replyCount})`}
@@ -129,9 +139,13 @@ const CommentItem = (props: CommentProps) => {
 };
 
 export const CommentList = (props: CommentListProps) => {
+  const themeTextColor = useThemeColor({}, "text");
   const [currentComments, setCurrentComments] = useState<Comment[] | null>(
     null,
   );
+  const [addCommentText, setAddCommentText] = useState<string>("");
+  const { loggedInUser } = useLoggedInUser();
+
   useEffect(() => {
     const loadComments = async () => {
       const page = await getComments(props.postId);
@@ -139,7 +153,25 @@ export const CommentList = (props: CommentListProps) => {
     };
     loadComments();
   }, [props.postId]);
-  const themeTextColor = useThemeColor({}, "text");
+
+  const handleSubmitComment = () => {
+    if (!addCommentText.trim() || !loggedInUser) {
+      return;
+    }
+    const newComment: Comment = {
+      id: `comment-${Date.now()}`,
+      postId: props.postId,
+      authorId: loggedInUser.id,
+      authorUsername: loggedInUser.username,
+      authorAvatarUrl: loggedInUser.avatarUrl,
+      text: addCommentText,
+      createdAt: new Date().toISOString(),
+      likeCount: 0,
+      replyCount: 0,
+    };
+    setCurrentComments((prev) => [...(prev ?? []), newComment]);
+    setAddCommentText("");
+  };
 
   return (
     <View style={{ gap: 12, padding: 8, flex: 1 }}>
@@ -155,12 +187,53 @@ export const CommentList = (props: CommentListProps) => {
       ) : (
         <></>
       )}
-      <Image
-        style={styles.avatar}
-        source={{ uri: props.loggedInUserAvatarUrl }}
-      />
-      <View style={[styles.commentTextBox, { outlineColor: themeTextColor }]}>
-        <Text>yo</Text>
+      <View style={styles.addCommentBar}>
+        <Image
+          style={styles.avatar}
+          source={{ uri: loggedInUser?.avatarUrl }}
+        />
+
+        <View style={[styles.commentTextBox, { outlineColor: themeTextColor }]}>
+          {Platform.OS === "web" ? (
+            <TextInput
+              style={{
+                outlineStyle: "none" as any,
+                flex: 1,
+                color: themeTextColor,
+              }}
+              value={addCommentText}
+              onChangeText={(text) => {
+                setAddCommentText(text);
+              }}
+              onSubmitEditing={handleSubmitComment}
+              placeholder="Add a comment..."
+            />
+          ) : (
+            <BottomSheetTextInput
+              onChangeText={(text) => {
+                setAddCommentText(text);
+              }}
+              value={addCommentText}
+              onSubmitEditing={handleSubmitComment}
+              style={{ flex: 1, color: themeTextColor }}
+              placeholder="Add a comment..."
+            />
+          )}
+          {addCommentText.length ? (
+            <Pressable
+              style={styles.submitCommentButton}
+              onPress={handleSubmitComment}
+            >
+              <Octicons
+                size={29}
+                name="arrow-up"
+                style={{ color: "#ffffff" }}
+              />
+            </Pressable>
+          ) : (
+            <></>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -171,11 +244,10 @@ export const styles = StyleSheet.create({
   commentPartsContainer: {
     padding: 2,
     flexDirection: "row",
-    alignItems: "center",
     gap: 4,
   },
   commentsTitle: { fontSize: 18, alignSelf: "center" },
-  commentText: { flex: 6, paddingHorizontal: 8, gap: 2 },
+  commentText: { flex: 6, paddingHorizontal: 8, gap: 4 },
   commenterNameText: { fontWeight: "bold" },
   avatar: {
     width: 36,
@@ -188,15 +260,37 @@ export const styles = StyleSheet.create({
     paddingRight: 8,
     paddingTop: 8,
   },
-  commentRepliesButton: {
-    paddingLeft: 50,
+  showCommentRepliesButton: {
+    paddingLeft: 70,
     paddingVertical: 4,
     fontWeight: 500,
     fontSize: 13,
   },
+  replyButton: {
+    paddingVertical: 4,
+    fontWeight: 500,
+    fontSize: 13,
+  },
+  addCommentBar: {
+    flexDirection: "row",
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+  },
   commentTextBox: {
     outlineStyle: "solid",
     outlineWidth: 1,
-    marginHorizontal: 20,
+    marginHorizontal: 10,
+    paddingLeft: 10,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  submitCommentButton: {
+    backgroundColor: "#32a338",
+    borderRadius: 16,
+    width: 40,
+    marginRight: 3,
+    alignItems: "center",
   },
 });

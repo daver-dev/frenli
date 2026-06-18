@@ -9,6 +9,8 @@ import { useColorScheme } from "@/components/expo/useColorScheme";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { CommentsProvider } from "@/context/CommentsContext";
+import { CommentsModal } from "@/components/main/CommentsModal";
+import { LoggedInUserProvider } from "@/context/LoggedInUserContext";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -51,18 +53,24 @@ function RootLayoutNav() {
 
   return (
     <GestureHandlerRootView>
-      <BottomSheetModalProvider>
-        <CommentsProvider>
-          <ThemeProvider
-            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-          >
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: "modal" }} />
-            </Stack>
-          </ThemeProvider>
-        </CommentsProvider>
-      </BottomSheetModalProvider>
+      <LoggedInUserProvider>
+        <BottomSheetModalProvider>
+          <CommentsProvider>
+            <ThemeProvider
+              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+            >
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="modal"
+                  options={{ presentation: "modal" }}
+                />
+              </Stack>
+            </ThemeProvider>
+            <CommentsModal />
+          </CommentsProvider>
+        </BottomSheetModalProvider>
+      </LoggedInUserProvider>
     </GestureHandlerRootView>
   );
 }
