@@ -28,24 +28,24 @@ export type CommentListProps = {
 };
 export type CommentProps = {
   comment: Comment;
+  topLevelCommentId: string;
+  onReplyPress: (topLevelCommentId: string, username: string) => void;
+  onPendingReplyConsumed: () => void;
+  pendingReply?: Comment | null;
 };
-
-const renderComment: ListRenderItem<Comment> = ({ item }) => {
-  return <CommentItem comment={item} />;
+type ReplyingTo = {
+  parentCommentId: string;
+  username: string;
 };
 
 const CommentItem = (props: CommentProps) => {
-  const { comment } = props;
-  const [isLiked, setIsLiked] = useState(false);
-  const [replies, setReplies] = useState<Comment[]>([]);
-  const [showingReplies, setShowingReplies] = useState<boolean>(false);
-  useEffect(() => {
-    const loadReplies = async () => {
-      const initialRepliesPage = await getReplies(comment.postId, comment.id);
-      setReplies(initialRepliesPage.items);
-    };
-    loadReplies();
-  }, [comment.postId, comment.id]);
+  const {
+    comment,
+    topLevelCommentId,
+    onReplyPress,
+    onPendingReplyConsumed,
+    pendingReply,
+  } = props;
 
   const themeTextColor = useThemeColor({}, "text");
   const grayTextColor = useThemeColor(
@@ -57,6 +57,39 @@ const CommentItem = (props: CommentProps) => {
     transform: [{ scale: heartScale.value }],
   }));
 
+  const [isLiked, setIsLiked] = useState(false);
+  const [replies, setReplies] = useState<Comment[]>([]);
+  const [showingReplies, setShowingReplies] = useState<boolean>(false);
+
+  useEffect(() => {
+    const loadReplies = async () => {
+      const initialRepliesPage = await getReplies(comment.postId, comment.id);
+      setReplies(initialRepliesPage.items);
+    };
+    loadReplies();
+  }, [comment.postId, comment.id]);
+
+  // When there is a pending reply, this will check which comment to apply it to.
+  useEffect(() => {
+    if (pendingReply && pendingReply.parentCommentId === topLevelCommentId) {
+      setReplies((prev) => [...prev, pendingReply]);
+      setShowingReplies(true);
+      onPendingReplyConsumed();
+    }
+  }, [pendingReply]);
+
+  const renderReply: ListRenderItem<Comment> = ({ item }) => {
+    return (
+      <CommentItem
+        comment={item}
+        topLevelCommentId={topLevelCommentId}
+        onReplyPress={onReplyPress}
+        // The below prop doesnt do anything here, it was just safer to make it required
+        onPendingReplyConsumed={onPendingReplyConsumed}
+      />
+    );
+  };
+
   const CommentOrReply = () => {
     return (
       <View style={styles.commentPartsContainer}>
@@ -67,7 +100,11 @@ const CommentItem = (props: CommentProps) => {
         <View style={styles.commentText}>
           <Text style={styles.commenterNameText}>{comment.authorUsername}</Text>
           <Text>{comment.text}</Text>
-          <Pressable>
+          <Pressable
+            onPress={() => {
+              onReplyPress(topLevelCommentId, comment.authorUsername);
+            }}
+          >
             <Text style={[styles.replyButton, { color: grayTextColor }]}>
               Reply
             </Text>
@@ -108,15 +145,14 @@ const CommentItem = (props: CommentProps) => {
         <FlatList
           showsVerticalScrollIndicator={false}
           data={replies}
-          renderItem={renderComment}
+          renderItem={renderReply}
           style={{ paddingLeft: 50, paddingTop: 4 }}
           contentContainerStyle={
             (styles.commentListContainer, { paddingLeft: 30 })
           }
+          keyboardShouldPersistTaps="handled"
         />
-      ) : (
-        <></>
-      )}
+      ) : null}
       {replies.length ? (
         <Pressable
           onPress={() => {
@@ -128,7 +164,7 @@ const CommentItem = (props: CommentProps) => {
           >
             {showingReplies
               ? "- Hide Replies"
-              : `- Show Replies (${comment.replyCount})`}
+              : `- Show Replies (${replies.length})`}
           </Text>
         </Pressable>
       ) : (
@@ -140,11 +176,21 @@ const CommentItem = (props: CommentProps) => {
 
 export const CommentList = (props: CommentListProps) => {
   const themeTextColor = useThemeColor({}, "text");
+  const grayBgColor = useThemeColor(
+    { light: "#bebebe", dark: "#4a4a4a" },
+    "background",
+  );
+
   const [currentComments, setCurrentComments] = useState<Comment[] | null>(
     null,
   );
   const [addCommentText, setAddCommentText] = useState<string>("");
+  const [commentBeingRepliedTo, setCommentBeingRepliedTo] =
+    useState<ReplyingTo | null>(null);
+  const [pendingReply, setPendingReply] = useState<Comment | null>(null);
+
   const { loggedInUser } = useLoggedInUser();
+  const commentInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     const loadComments = async () => {
@@ -153,6 +199,31 @@ export const CommentList = (props: CommentListProps) => {
     };
     loadComments();
   }, [props.postId]);
+
+  const replyToComment = (topLevelCommentId: string, username: string) => {
+    setCommentBeingRepliedTo({ parentCommentId: topLevelCommentId, username });
+    setAddCommentText(`@${username} `);
+    commentInputRef.current?.focus();
+  };
+
+  const cancelReplyToComment = () => {
+    setCommentBeingRepliedTo(null);
+    setAddCommentText("");
+  };
+
+  const handlePendingReplyConsumed = () => setPendingReply(null);
+
+  const renderTopLevelComment: ListRenderItem<Comment> = ({ item }) => {
+    return (
+      <CommentItem
+        comment={item}
+        topLevelCommentId={item.id}
+        onReplyPress={replyToComment}
+        pendingReply={pendingReply}
+        onPendingReplyConsumed={handlePendingReplyConsumed}
+      />
+    );
+  };
 
   const handleSubmitComment = () => {
     if (!addCommentText.trim() || !loggedInUser) {
@@ -168,8 +239,14 @@ export const CommentList = (props: CommentListProps) => {
       createdAt: new Date().toISOString(),
       likeCount: 0,
       replyCount: 0,
+      parentCommentId: commentBeingRepliedTo?.parentCommentId,
     };
-    setCurrentComments((prev) => [...(prev ?? []), newComment]);
+    if (commentBeingRepliedTo) {
+      setPendingReply(newComment);
+    } else {
+      setCurrentComments((prev) => [...(prev ?? []), newComment]);
+    }
+    setCommentBeingRepliedTo(null);
     setAddCommentText("");
   };
 
@@ -179,14 +256,23 @@ export const CommentList = (props: CommentListProps) => {
       <FlatList
         showsVerticalScrollIndicator={false}
         data={currentComments}
-        renderItem={renderComment}
+        renderItem={renderTopLevelComment}
         contentContainerStyle={styles.commentListContainer}
+        keyboardShouldPersistTaps="handled"
       />
       {currentComments?.length == 0 ? (
         <Text style={{ textAlign: "center" }}>No comments yet!</Text>
-      ) : (
-        <></>
-      )}
+      ) : null}
+      {commentBeingRepliedTo ? (
+        <View style={[styles.replyingToBar, { backgroundColor: grayBgColor }]}>
+          <Text style={{ flex: 1 }}>
+            Replying to @{commentBeingRepliedTo.username}
+          </Text>
+          <Pressable onPress={cancelReplyToComment}>
+            <Octicons name="x" size={24} style={{ color: themeTextColor }} />
+          </Pressable>
+        </View>
+      ) : null}
       <View style={styles.addCommentBar}>
         <Image
           style={styles.avatar}
@@ -206,6 +292,7 @@ export const CommentList = (props: CommentListProps) => {
                 setAddCommentText(text);
               }}
               onSubmitEditing={handleSubmitComment}
+              ref={commentInputRef}
               placeholder="Add a comment..."
             />
           ) : (
@@ -216,6 +303,7 @@ export const CommentList = (props: CommentListProps) => {
               value={addCommentText}
               onSubmitEditing={handleSubmitComment}
               style={{ flex: 1, color: themeTextColor }}
+              ref={commentInputRef as any}
               placeholder="Add a comment..."
             />
           )}
@@ -230,9 +318,7 @@ export const CommentList = (props: CommentListProps) => {
                 style={{ color: "#ffffff" }}
               />
             </Pressable>
-          ) : (
-            <></>
-          )}
+          ) : null}
         </View>
       </View>
     </View>
@@ -240,7 +326,7 @@ export const CommentList = (props: CommentListProps) => {
 };
 
 export const styles = StyleSheet.create({
-  commentListContainer: { gap: 6 },
+  commentListContainer: { gap: 6, flex: 1 },
   commentPartsContainer: {
     padding: 2,
     flexDirection: "row",
@@ -291,6 +377,13 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     width: 40,
     marginRight: 3,
+    alignItems: "center",
+  },
+  replyingToBar: {
+    flexDirection: "row",
+    height: 36,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     alignItems: "center",
   },
 });
