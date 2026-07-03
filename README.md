@@ -29,3 +29,20 @@ Lambda can reach DynamoDB, S3, Cognito, and API Gateway without a VPC.
 
 See [ROADMAP.md](./ROADMAP.md) for the full phased build plan and the
 reasoning behind these choices.
+
+## Prerequisites
+
+To run and deploy this project from scratch you'll need:
+
+- **AWS account** — with an IAM identity able to create Cognito, DynamoDB,
+  S3, API Gateway, and Lambda resources
+- **AWS CLI** — configured (`aws configure`) with credentials for that IAM
+  identity
+- **Terraform** — for provisioning AWS infrastructure
+- **Node.js** (LTS) — for `node-backend/` and `frontend/`
+- **Expo CLI** (`npx expo`) — for running the `frontend/` app; a phone with
+  Expo Go, or an iOS/Android simulator, to preview it
+- **Git**
+
+GitHub Actions handles CI/CD via OIDC once the AWS role is set up — no AWS
+credentials are stored in GitHub itself.
