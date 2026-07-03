@@ -6,9 +6,9 @@ A no-algorithm social media app. Purely stay in touch with your friends without 
 
 ```
 ┌────────────┐   Cognito JWT    ┌──────────────────┐      ┌────────────────────┐
-│ frontend/  │ ───────────────▶ │   API Gateway     │ ───▶ │   backend/ Lambdas │
-│ Expo / RN  │ ◀─────────────── │ (HTTP + WebSocket)│ ◀─── │ (Spring Boot +     │
-└────────────┘                  └──────────────────┘      │  Spring Cloud Fn)  │
+│ frontend/  │ ───────────────▶ │   API Gateway     │ ───▶ │ node-backend/      │
+│ Expo / RN  │ ◀─────────────── │ (HTTP + WebSocket)│ ◀─── │ Lambdas (Node.js)  │
+└────────────┘                  └──────────────────┘      │                    │
        │                                                    └─────────┬──────────┘
        │ sign up / sign in                                            │
        ▼                                          ┌────────────────────┼────────────────────┐
@@ -20,7 +20,7 @@ A no-algorithm social media app. Purely stay in touch with your friends without 
 ```
 
 - **frontend/** — Expo / React Native app (feed, messages, notifications, profile, post creation)
-- **backend/** — Java (Spring Boot 3 + Spring Cloud Function), deployed as AWS Lambda
+- **node-backend/** — Node.js, deployed as AWS Lambda
 - **infrastructure/** — Terraform IaC for all AWS resources
 - **.github/workflows/** — CI/CD pipelines (GitHub Actions, OIDC to AWS)
 

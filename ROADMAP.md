@@ -1,7 +1,7 @@
 # Frenli — Project Roadmap
 
 A no-algorithm social app: feed, messages, notifications, profile, and posting —
-React Native (Expo) frontend, Java backend, Terraform on AWS, GitHub Actions CI/CD.
+React Native (Expo) frontend, Node.js backend, Terraform on AWS, GitHub Actions CI/CD.
 
 This roadmap breaks the work into small, ordered tasks. Check items off as you go.
 Each milestone is meant to leave you with something runnable/demoable.
@@ -15,8 +15,7 @@ backend/infra milestones, since several tasks depend on these choices.
 
 | Area            | Choice                                                       | Why                                                                                                                                                                                                              |
 | --------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backend compute | **AWS Lambda** (Java)                                        | You're cost-sensitive with ~0 users. Fargate+ALB costs ~$25-30/mo idle; Lambda is ~$0/mo idle thanks to its permanent free tier.                                                                                 |
-| Java framework  | **Spring Boot 3 + Spring Cloud Function**                    | Lets you run the exact same code as a normal local REST API (`./gradlew bootRun`) _and_ deploy it as Lambda functions — good for learning/debugging. Enable **Lambda SnapStart** to fix Java's slow cold starts. |
+| Backend compute | **AWS Lambda** (Node.js)                                     | You're cost-sensitive with ~0 users. Fargate+ALB costs ~$25-30/mo idle; Lambda is ~$0/mo idle thanks to its permanent free tier.                                                                                 |
 | Database        | **DynamoDB** (not RDS), for everything                       |
 | Auth            | **AWS Cognito**                                              | Managed signup/login/password-reset/email-verification, issues JWTs your Lambdas validate. Less custom security code.                                                                                            |
 | Messaging       | **API Gateway WebSocket API + Lambda + DynamoDB**            | Your choice — classic serverless chat pattern.                                                                                                                                                                   |
@@ -32,7 +31,7 @@ backend/infra milestones, since several tasks depend on these choices.
 ```
 frenli/
 ├── frontend/        # Expo / React Native app (existing)
-├── backend/             # Java (Spring Boot + Spring Cloud Function, Lambda)
+├── node-backend/        # Node.js (Lambda)
 ├── infrastructure/      # Terraform
 ├── .github/workflows/   # CI/CD pipelines
 ├── README.md
@@ -44,10 +43,10 @@ frenli/
 
 ## Milestone 0 — Repo & tooling setup
 
-- [x] Create `backend/`, `infrastructure/`, `.github/workflows/` folders at the
+- [x] Create `node-backend/`, `infrastructure/`, `.github/workflows/` folders at the
       repo root (sibling to `frontend/`)
-- [x] Add a root `.gitignore` covering Java (`target/`, `.gradle/`), Terraform
-      (`.terraform/`, `*.tfstate*`), and Node (already covered in `frontend`)
+- [x] Add a root `.gitignore` covering Terraform (`.terraform/`, `*.tfstate*`) and
+      Node (already covered in `frontend`)
 - [x] Update root `README.md` with a short architecture diagram/description
       (can be a simple text diagram for now)
 
@@ -104,11 +103,10 @@ Continuation of what's already in `notes.txt` / in progress:
       DynamoDB way)
 - [ ] Terraform: DynamoDB table(s) with appropriate GSIs for the access
       patterns above
-- [ ] Set up `backend/` Spring Boot project with Spring Cloud Function;
-      confirm it runs locally as a normal REST API against local DynamoDB
-      (DynamoDB Local via Docker for dev)
+- [ ] Set up `node-backend/` Node.js project; confirm it runs locally against
+      local DynamoDB (DynamoDB Local via Docker for dev)
 - [ ] Terraform: Lambda function(s) + IAM roles (least privilege per table) +
-      API Gateway HTTP API; enable SnapStart
+      API Gateway HTTP API
 - [ ] Implement endpoints: create/read user profile, create/list posts
       (feed + per-user), follow/unfollow, like/unlike, comment
 - [ ] Frontend: replace feed/profile mock data with real API calls
@@ -159,7 +157,7 @@ Continuation of what's already in `notes.txt` / in progress:
 
 - [ ] Set up GitHub OIDC → AWS IAM role (no stored AWS access keys)
 - [ ] Workflow: frontend — lint/typecheck/test on PR (`frontend`)
-- [ ] Workflow: backend — build/test Java on PR (`backend`)
+- [ ] Workflow: backend — build/test on PR (`node-backend`)
 - [ ] Workflow: `terraform plan` on PR for changes under `infrastructure/`,
       posted as a PR comment
 - [ ] Workflow: `terraform apply` on merge to `main` (consider a manual
