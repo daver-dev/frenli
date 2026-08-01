@@ -1,9 +1,9 @@
-# Frenli — DynamoDB Data Model
+# Frenli: DynamoDB Data Model
 
 Single-table design. All entities share one table (`frenli-{env}`).
 Access patterns are defined first; keys are derived from them.
 
-Timestamps are ISO 8601 strings (`2026-07-03T12:00:00.000Z`) — lexicographically
+Timestamps are ISO 8601 strings (`2026-07-03T12:00:00.000Z`): lexicographically
 sortable, so they work as sort key prefixes for range queries.
 
 ---
@@ -12,10 +12,10 @@ sortable, so they work as sort key prefixes for range queries.
 
 Every item in a DynamoDB table is identified by two values:
 
-- **Partition key** — determines which physical partition (server) the item lives
+- **Partition key**: determines which physical partition (server) the item lives
   on. Multiple items can share the same partition key, and DynamoDB keeps them
   co-located so they can be fetched together in one query.
-- **Sort key** — within a partition, items are ordered by this value. The
+- **Sort key**: within a partition, items are ordered by this value. The
   partition key + sort key pair must be unique for each item.
 
 This design uses both keys on every item.
@@ -85,9 +85,9 @@ index or query serves each pattern.
 
 ### A note on `#METADATA` sort keys
 
-Because multiple item types share the same partition — for example, a post's
+Because multiple item types share the same partition (for example, a post's
 main data and all of its like items live under the same `POST#<postId>`
-partition — we need a way to distinguish "the main record for this entity" from
+partition), we need a way to distinguish "the main record for this entity" from
 the other items in the same partition.
 
 The sort key `#METADATA` serves as that marker. It means: *this is the core
@@ -100,13 +100,13 @@ so it always appears first when you scan a partition.
 ### A note on secondary indexes (GSIs)
 
 DynamoDB only lets you query by partition key (and optionally sort key). If you
-want to query items by a *different* field — for example, find all posts by a
-given user — you need a **Global Secondary Index (GSI)**. A GSI is a separate,
+want to query items by a *different* field (for example, find all posts by a
+given user), you need a **Global Secondary Index (GSI)**. A GSI is a separate,
 automatically maintained index on the same table that uses different key fields.
 
 To put an item into a GSI, you add the GSI's key fields as regular attributes
 on that item. Items that don't have those attributes set are automatically
-excluded from the index — this is called a **sparse index**, and it's
+excluded from the index: this is called a **sparse index**, and it's
 intentional. It keeps the index small by only including the items that
 actually need to be queried that way.
 
@@ -156,7 +156,7 @@ createdAt     String   ISO 8601
 ```
 The `GSI1PK` and `GSI1SK` attributes place this item in GSI1.
 GSI1 lets you query "all posts where `GSI1PK = USER#<userId>`",
-sorted by `createdAt` — this is what serves access pattern P2 (posts by user,
+sorted by `createdAt`: this is what serves access pattern P2 (posts by user,
 newest first).
 
 ---
@@ -170,11 +170,11 @@ createdAt     String
 ```
 Post like items share the same partition as the post's `#METADATA` item.
 To check whether a user liked a post (PL2), fetch the single item at
-`partitionKey = POST#<postId>`, `sortKey = LIKE#<userId>` — if it exists,
+`partitionKey = POST#<postId>`, `sortKey = LIKE#<userId>`: if it exists,
 they liked it.
 To like / unlike (PL1), create or delete that item.
 The like count (PL3) is read from the `likeCount` field on the post's
-`#METADATA` item — see the Counters section below for how that stays accurate.
+`#METADATA` item: see the Counters section below for how that stays accurate.
 
 ---
 
@@ -195,7 +195,7 @@ createdAt     String   ISO 8601
 [GSI2SK]:      createdAt
 ```
 GSI2 lets you query "all comments where `GSI2PK = POST#<postId>`",
-sorted by `createdAt` — this serves access pattern C1 (comments for a post,
+sorted by `createdAt`: this serves access pattern C1 (comments for a post,
 oldest first).
 
 ---
@@ -229,7 +229,7 @@ createdAt     String   ISO 8601
 [GSI3SK]:      createdAt
 ```
 GSI3 lets you query "all replies where `GSI3PK = COMMENT#<commentId>`",
-sorted by `createdAt` — this serves access pattern R1 (replies for a comment,
+sorted by `createdAt`: this serves access pattern R1 (replies for a comment,
 oldest first).
 
 ---
@@ -246,7 +246,7 @@ createdAt     String
 
 #### Conversation
 ConversationId is deterministic: `<smallerUserId>#<largerUserId>` (the two
-participant IDs sorted alphabetically and joined). No lookup needed — both
+participant IDs sorted alphabetically and joined). No lookup needed: both
 participants can compute it locally from each other's userId.
 
 ```
@@ -275,7 +275,7 @@ createdAt     String   ISO 8601
 All messages in a conversation share the same partition (`CONV#<conversationId>`),
 so one query returns all of them. DynamoDB returns items in sort key order by
 default (oldest first). To get newest first (access pattern M2), set
-`ScanIndexForward: false` in the query — this tells DynamoDB to walk the sort
+`ScanIndexForward: false` in the query: this tells DynamoDB to walk the sort
 key in reverse, returning the most recent messages first.
 
 The `#<messageId>` suffix on the sort key ensures two messages sent at the
@@ -316,7 +316,7 @@ When a message is sent (M3), three things must happen together:
 3. Update both participants' User↔Conversation items.
 
 DynamoDB's `TransactWriteItems` lets you do all three in a single atomic
-operation — either all succeed or none do.
+operation: either all succeed or none do.
 
 ---
 
@@ -328,10 +328,10 @@ stored as regular attributes on the items that need to appear in it.
 
 | GSI | Items indexed | Partition key attribute | Sort key attribute | Answers |
 |-----|--------------|------------------------|-------------------|---------|
-| GSI1 | Posts | `GSI1PK` = `USER#<userId>` | `GSI1SK` = `createdAt` | P2 — posts by user |
-| GSI2 | Comments | `GSI2PK` = `POST#<postId>` | `GSI2SK` = `createdAt` | C1 — comments on a post |
-| GSI3 | Replies | `GSI3PK` = `COMMENT#<commentId>` | `GSI3SK` = `createdAt` | R1 — replies on a comment |
-| GSI4 | Users | `GSI4PK` = `username` | — | U2 — user by username |
+| GSI1 | Posts | `GSI1PK` = `USER#<userId>` | `GSI1SK` = `createdAt` | P2: posts by user |
+| GSI2 | Comments | `GSI2PK` = `POST#<postId>` | `GSI2SK` = `createdAt` | C1: comments on a post |
+| GSI3 | Replies | `GSI3PK` = `COMMENT#<commentId>` | `GSI3SK` = `createdAt` | R1: replies on a comment |
+| GSI4 | Users | `GSI4PK` = `username` | N/A | U2: user by username |
 
 Only the specific item type listed in each row has those GSI attributes set.
 All other item types in the table simply don't have those fields, so they
@@ -345,11 +345,11 @@ don't appear in that index.
 parent item (post, comment, or reply) rather than being calculated by counting
 all the individual like/comment/reply items each time someone loads a post.
 Counting every time would require scanning potentially thousands of items on
-every page load — storing the number directly makes reads fast.
+every page load: storing the number directly makes reads fast.
 
 The tradeoff is that the write path (liking, commenting, replying) must always
 update the counter at the same time. DynamoDB's `ADD` expression does this
-safely — it increments or decrements the number in a single operation that
+safely: it increments or decrements the number in a single operation that
 cannot be partially applied, so two simultaneous likes can't both read "5",
 both write "6", and end up with the count being one too low.
 

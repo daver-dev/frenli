@@ -2,6 +2,7 @@ May want to consider turborepo for when there are multiple nested projects in th
 
 To do:
 
+
 profile page with mock data
     -profile pic
     -bio
@@ -9,12 +10,18 @@ profile page with mock data
     -method for only grabbing x number of most recent pics, and adding to pics array
         when scrolled to the bottom (same as below method with optional profile argument)
 
+
+
 feed page with mock data
     -pics
     -method for only grabbing x number of most recent pics, and adding to pics array
         when scrolled to the bottom
 
+
+
 settings page
+
+
 
 messages page with mock data
 
