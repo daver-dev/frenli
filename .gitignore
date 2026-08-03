@@ -10,6 +10,12 @@ crash.*.log
 # frontend/ has its own .gitignore for node_modules, .expo, etc.
 node_modules/
 
+### Java / Gradle (java-backend/) ###
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+
 ### Environment ###
 .env
 .env.*

@@ -6,29 +6,46 @@ A no-algorithm social media app. Purely stay in touch with your friends without 
 
 ```
 ┌────────────┐   Cognito JWT    ┌──────────────────┐      ┌────────────────────┐
-│ frontend/  │ ───────────────▶ │   API Gateway     │ ───▶ │ {lang}-backend/    │
-│ Expo / RN  │ ◀─────────────── │ (HTTP + WebSocket)│ ◀─── │ Lambdas            │
+│ frontend/  │ ───────────────▶ │   API Gateway     │ ───▶ │ node-backend/      │
+│ Expo / RN  │ ◀─────────────── │ (HTTP + WebSocket)│ ◀─── │ Lambdas (Node.js)  │
 └────────────┘                  └──────────────────┘      │                    │
        │                                                    └─────────┬──────────┘
        │ sign up / sign in                                            │
-       ▼                                          ┌────────────────────┼────────────────────┐
-┌────────────┐                                    ▼                    ▼                    ▼
-│ AWS Cognito │                            ┌────────────┐       ┌────────────┐       ┌────────────┐
-└────────────┘                            │  DynamoDB   │       │     S3     │       │ Expo Push  │
-                                           │ (all data)  │       │  (media)   │       │    API     │
-                                           └────────────┘       └────────────┘       └────────────┘
+       ▼                                               ┌────────────────┴────────────────┐
+┌────────────┐                                          ▼                                 ▼
+│ AWS Cognito │                                  ┌────────────┐                    ┌────────────┐
+└────────────┘                                    │  DynamoDB   │                    │     S3     │
+                                                   │ (all data)  │                    │  (media)   │
+                                                   └────────────┘                    └────────────┘
 ```
 
+`java-backend/` isn't part of this diagram: it's a normal Spring Boot app on a
+single EC2 instance, started only when testing and stopped otherwise, hit
+directly by the frontend. It reaches the same DynamoDB / S3 / Cognito
+resources.
+
 - **frontend/**: Expo / React Native app (feed, messages, notifications, profile, post creation)
-- **node-backend/** / **java-backend/**: alternate backend implementations of the same API, deployed as AWS Lambda. They share [DATA_MODEL.md](./DATA_MODEL.md) at the repo root.
+- **node-backend/**: Node.js, deployed as AWS Lambda behind API Gateway
+- **java-backend/**: Java (Spring Boot), deployed as a normal always-on app on a single EC2 instance
+- Both share [DATA_MODEL.md](./DATA_MODEL.md) at the repo root; they're alternate implementations of the same API, kept for comparison/learning, not meant to both run in production at once.
 - **infrastructure/**: Terraform IaC for all AWS resources
 - **.github/workflows/**: CI/CD pipelines (GitHub Actions, OIDC to AWS)
 
 All data lives in DynamoDB (no RDS) to avoid the cost of a NAT Gateway, since
 Lambda can reach DynamoDB, S3, Cognito, and API Gateway without a VPC.
 
-See [ROADMAP.md](./ROADMAP.md) for the full phased build plan and the
-reasoning behind these choices.
+## Architecture decisions (and why)
+
+| Area            | Choice                                                       | Why                                                                                                                                                                                                              |
+| --------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend compute | **`node-backend/`: AWS Lambda.** **`java-backend/`: Spring Boot on a single EC2 instance**, started only for testing (a few hours/month) and stopped otherwise. | You're cost-sensitive with ~0 users. Lambda is ~$0/mo idle. EC2 bills per-second while running and ~$0 while stopped, so an instance only powered on for testing is just as cheap in practice, while being the standard, simpler way to run Spring Boot for a first Java project. Multiple backend implementations are kept side by side for comparison/learning, not because both need to run in production. |
+| Database        | **DynamoDB** (not RDS), for everything                       | Avoids the ~$32/mo NAT Gateway that VPC-attached Lambda + RDS would require.                                                                                                                                     |
+| Auth            | **AWS Cognito**                                              | Managed signup/login/password-reset/email-verification, issues JWTs your backends validate. Less custom security code.                                                                                          |
+| Messaging       | **API Gateway WebSocket API + Lambda + DynamoDB**            | Classic serverless chat pattern.                                                                                                                                                                                 |
+| Photo storage   | **S3** (+ pre-signed URLs)                                   | Standard, cheap, integrates cleanly with Lambda and Cognito-authenticated uploads.                                                                                                                               |
+| Notifications   | **In-app only (DynamoDB)**                                   | No push notifications wanted, so no AWS SNS or Expo push integration needed.                                                                                                                                     |
+| IaC             | **Terraform**, remote state in S3 + DynamoDB lock table      | Standard, your stated requirement.                                                                                                                                                                               |
+| CI/CD           | **GitHub Actions + OIDC to AWS** (no long-lived access keys) | Best practice, avoids storing AWS secrets in GitHub.                                                                                                                                                             |
 
 ## Setup
 

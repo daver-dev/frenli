@@ -1,0 +1,20 @@
+﻿{
+    "Version":  "2012-10-17",
+    "Statement":  [
+                      {
+                          "Effect":  "Allow",
+                          "Principal":  {
+                                            "Federated":  "arn:aws:iam::875141474476:oidc-provider/token.actions.githubusercontent.com"
+                                        },
+                          "Condition":  {
+                                            "StringLike":  {
+                                                               "token.actions.githubusercontent.com:sub":  "repo:daver-dev/frenli:ref:refs/heads/main"
+                                                           },
+                                            "StringEquals":  {
+                                                                 "token.actions.githubusercontent.com:aud":  "sts.amazonaws.com"
+                                                             }
+                                        },
+                          "Action":  "sts:AssumeRoleWithWebIdentity"
+                      }
+                  ]
+}
