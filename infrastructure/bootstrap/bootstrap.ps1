@@ -9,19 +9,25 @@ $oidcRoleName = "github-actions-deploy-role"
 $oidcPermissionsPolicyName = "github-actions-deploy-permissions"
 $awsRegion = "us-east-1"
 
+# Check for an error ($LASTEXITCODE non-zero) and kill the script
+function Assert-Success {
+    param(
+        [string]$ErrorMessage
+    )
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error $ErrorMessage
+        exit 1
+    }
+}
+
 # Check the user is signed into Github CLI
 gh auth status
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Need to be signed into gh CLI to be able to bootstrap the correct github variables."
-    exit 1
-}
+Assert-Success "Need to be signed into gh CLI to be able to bootstrap the correct github variables."
 
 # Check the user is signed into AWS CLI
 $accountId = (aws sts get-caller-identity | ConvertFrom-Json).Account
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Need to be signed into AWS CLI to be able to bootstrap initial OIDC Provider/Role for Github Acitons and Terraform state bucket."
-    exit 1
-}
+Assert-Success "Need to be signed into AWS CLI to be able to bootstrap initial OIDC Provider/Role for Github Acitons and Terraform state bucket."
 
 # Check for a github OIDC provider in AWS, create it if there isnt one
 $providers = aws iam list-open-id-connect-providers | ConvertFrom-Json
@@ -56,11 +62,11 @@ $OidcTrustPolicyJson = @{
     )
 } | ConvertTo-Json -Depth 6
 
-$OidcTrustPolicyJson | Out-File oidc-trust-policy.json -Encoding utf8 
+$OidcTrustPolicyJson | Out-File oidc-trust-policy.json -Encoding utf8
 
-# Check for an existing Oidc role. If this errors, redirect stream 2 (errors) into stream one (output) with 2>&1 then make sure its a does-not-exist error
-# Then apply the trust policy to the role of the OIDC provider.
+# Check for an existing Oidc role. If this errors, redirect stream 2 (errors) into stream 1 (output) with 2>&1.
 $getExistingOidcRoleResult = aws iam get-role --role-name $oidcRoleName 2>&1 | Out-String
+# Then make sure its a does-not-exist error, then apply the trust policy to the role of the OIDC provider.
 if ($LASTEXITCODE -ne 0) {
     if ($getExistingOidcRoleResult -match "NoSuchEntity") {
         Write-Host "OIDC role not found. Creating the role."
@@ -74,19 +80,12 @@ if ($LASTEXITCODE -ne 0) {
 } else {
     Write-Host "Role already exists. Applying policy."
     aws iam update-assume-role-policy --role-name $oidcRoleName --policy-document file://oidc-trust-policy.json
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Unexpected error applying role policy. Likely outputted by AWS CLI above."
-        exit 1
-    }
+    Assert-Success "Unexpected error applying role policy. Likely outputted by AWS CLI above."
 }
 
 # Apply permissions policy to the OIDC provider's role so github actions can create and modify the necessary resources.
 aws iam put-role-policy --role-name $oidcRoleName --policy-document file://permissions-policy.json --policy-name $oidcPermissionsPolicyName
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Unexpected error applying pemissions policy. Likely outputted by AWS CLI above."
-    exit 1
-}
+Assert-Success "Unexpected error applying pemissions policy. Likely outputted by AWS CLI above."
 
 # Bucket names are unique across all of AWS, so suffix with the account id to avoid collisions.
 $stateBucketName = "frenli-terraform-state-$accountId"
@@ -97,22 +96,7 @@ if ($LASTEXITCODE -ne 0) {
     if ($headBucketResult -match "404") {
         Write-Host "Terraform state bucket not found. Creating it."
         aws s3api create-bucket --bucket $stateBucketName --region $awsRegion
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Unexpected error creating the Terraform state bucket."
-            exit 1
-        }
-
-        aws s3api put-bucket-versioning --bucket $stateBucketName --versioning-configuration Status=Enabled
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Unexpected error enabling versioning on the Terraform state bucket."
-            exit 1
-        }
-
-        aws s3api put-bucket-encryption --bucket $stateBucketName --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Unexpected error enabling encryption on the Terraform state bucket."
-            exit 1
-        }
+        Assert-Success "Unexpected error creating the Terraform state bucket."
     } else {
         Write-Error "Unexpected error checking for the Terraform state bucket."
         Write-Error $headBucketResult
@@ -122,48 +106,26 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "Terraform state bucket already exists. Skipping creation."
 }
 
-$stateLockTableName = "frenli-terraform-locks"
+aws s3api put-bucket-versioning --bucket $stateBucketName --versioning-configuration Status=Enabled
+Assert-Success "Unexpected error enabling versioning on the Terraform state bucket."
+aws s3api put-bucket-encryption --bucket $stateBucketName --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+Assert-Success "Unexpected error enabling encryption on the Terraform state bucket."
 
-# Check for an existing lock table, then create it
-$describeTableResult = aws dynamodb describe-table --table-name $stateLockTableName 2>&1 | Out-String
-if ($LASTEXITCODE -ne 0) {
-    if ($describeTableResult -match "ResourceNotFoundException") {
-        Write-Host "Terraform lock table not found. Creating it."
-        aws dynamodb create-table --table-name $stateLockTableName --attribute-definitions AttributeName=LockID,AttributeType=S --key-schema AttributeName=LockID,KeyType=HASH --billing-mode PAY_PER_REQUEST --region $awsRegion
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Unexpected error creating the Terraform lock table."
-            exit 1
-        }
-    } else {
-        Write-Error "Unexpected error checking for the Terraform lock table."
-        Write-Error $describeTableResult
-        exit 1
-    }
-} else {
-    Write-Host "Terraform lock table already exists. Skipping creation."
-}
-
-# Partial backend config for `terraform init -backend-config=backend.hcl`. The bucket name includes
-# the account id, which isnt known until this script runs, so it cant live in a static backend.tf.
+# Backend config to tell terraform where to store its own data
 $backendConfigContent = @"
 bucket         = "$stateBucketName"
 key            = "terraform.tfstate"
 region         = "$awsRegion"
-dynamodb_table = "$stateLockTableName"
+use_lockfile   = true
 encrypt        = true
 "@
 
-$backendConfigContent | Out-File backend.hcl -Encoding utf8
+$backendConfigContent | Out-File ../terraform/backend.hcl -Encoding utf8
 
-# Fetch the role ARN now that the role definitely exists, to push it to GitHub.
+# Fetch the role ARN now that the role definitely exists, to push it to GitHub
 $oidcRole = aws iam get-role --role-name $oidcRoleName | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Unexpected error fetching the role ARN to push to GitHub."
-    exit 1
-}
+Assert-Success "Unexpected error fetching the role ARN to push to GitHub."
 
+# Set the role in Github variables so pipeline runners can use it
 gh variable set AWS_ROLE_ARN --body $oidcRole.Role.Arn --repo "$GithubRepoOwnerUsername/$GithubRepoName"
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Unexpected error setting the AWS_ROLE_ARN github variable."
-    exit 1
-}
+Assert-Success "Unexpected error setting the AWS_ROLE_ARN github variable."

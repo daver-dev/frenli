@@ -33,6 +33,14 @@ index or query serves each pattern.
 | U1 | Get user profile by userId |
 | U2 | Get user by username |
 
+### Follows
+| # | Pattern |
+|---|---------|
+| F1 | Follow / unfollow a user |
+| F2 | Check whether the current user follows someone |
+| F3 | List who a user follows |
+| F4 | List a user's followers |
+
 ### Posts
 | # | Pattern |
 |---|---------|
@@ -123,18 +131,46 @@ automatically excluded because they don't have a `username` field.
 partitionKey:  USER#<userId>
 sortKey:       #METADATA
 
-userId        String   Cognito sub (UUID)
-username      String
-displayName   String
-bio           String   optional
-avatarKey     String   S3 object key, optional
-createdAt     String   ISO 8601
+userId          String   Cognito sub (UUID)
+username        String
+displayName     String
+bio             String   optional
+avatarKey       String   S3 object key, optional
+postCount       Number   see Counters section below
+followerCount   Number   see Counters section below
+followingCount  Number   see Counters section below
+createdAt       String   ISO 8601
 
 [GSI4PK]: username
 ```
 The `GSI4PK` attribute is what places this item in GSI4.
 Setting it to `username` means GSI4 lets you look up a user directly by their
 username (access pattern U2), without scanning the whole table.
+
+---
+
+#### Follow
+```
+partitionKey:  USER#<followerId>
+sortKey:       FOLLOWS#<followeeId>
+
+followerId    String
+followeeId    String
+createdAt     String   ISO 8601
+
+[GSI5PK]: USER#<followeeId>
+[GSI5SK]:      createdAt
+```
+Follow items live under the follower's own partition, alongside their
+`#METADATA` profile item. This answers "who does this user follow" (F3)
+directly: query `partitionKey = USER#<followerId>`, `sortKey begins_with
+FOLLOWS#`. To check whether the current user follows someone (F2), fetch the
+single item at `partitionKey = USER#<followerId>`, `sortKey =
+FOLLOWS#<followeeId>`. To follow / unfollow (F1), create or delete that item.
+
+`GSI5PK` and `GSI5SK` place this item in GSI5, keyed by the followee instead
+of the follower. This answers the reverse question, "who follows this user"
+(F4), without any extra writes: the same item is simply indexed a second way.
 
 ---
 
@@ -332,6 +368,7 @@ stored as regular attributes on the items that need to appear in it.
 | GSI2 | Comments | `GSI2PK` = `POST#<postId>` | `GSI2SK` = `createdAt` | C1: comments on a post |
 | GSI3 | Replies | `GSI3PK` = `COMMENT#<commentId>` | `GSI3SK` = `createdAt` | R1: replies on a comment |
 | GSI4 | Users | `GSI4PK` = `username` | N/A | U2: user by username |
+| GSI5 | Follows | `GSI5PK` = `USER#<followeeId>` | `GSI5SK` = `createdAt` | F4: followers of a user |
 
 Only the specific item type listed in each row has those GSI attributes set.
 All other item types in the table simply don't have those fields, so they
@@ -357,3 +394,8 @@ Example (like a post):
 1. Create the Post Like item. Use a condition that fails if it already exists,
    so a double-tap can't like the same post twice.
 2. If that succeeds, update the Post item: add 1 to `likeCount`.
+
+The same pattern applies to `postCount`, `followerCount`, and `followingCount`
+on the User item. Following/unfollowing updates both users' counts atomically,
+using the same `TransactWriteItems` approach the doc uses for sending a
+message.
