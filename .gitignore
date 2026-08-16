@@ -6,6 +6,10 @@
 crash.log
 crash.*.log
 
+### Bootstrap (infrastructure/bootstrap/) ###
+# Regenerated fresh every run of bootstrap.ps1, account-specific ARN baked in.
+oidc-trust-policy.json
+
 ### Node ###
 # frontend/ has its own .gitignore for node_modules, .expo, etc.
 node_modules/

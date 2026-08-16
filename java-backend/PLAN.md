@@ -38,7 +38,9 @@ Needed before any feature can be tested against real resources:
 - One private S3 bucket for media, with CORS allowing upload/download from
   the frontend, since pre-signed uploads go directly client to S3.
 - Provider/region/environment config, with the table name and bucket name
-  output so they can be pasted into the backend's config.
+  templated into the EC2 instance's user data at deploy time so the backend
+  gets them with no manual copy/paste, consistent with the credentials
+  already resolving automatically via the instance's IAM role.
 
 **Verify**: apply the Terraform config, then confirm in the AWS Console that
 the table shows all 5 GSIs with correct key schemas and the bucket exists
@@ -81,9 +83,11 @@ behind annotations, better for a first Java project.
 Add the AWS SDK for Java (v2), DynamoDB and S3 modules. Credentials resolve
 via the SDK's default provider chain: locally that reads your `aws configure`
 profile, and once deployed to the EC2 instance later it reads the instance's
-IAM role automatically, no code change needed either way. Table name, bucket
-name, and region come from backend config, populated from the Terraform
-outputs above.
+IAM role automatically, no code change needed either way. Table name and
+bucket name are written into the instance's user data at deploy time
+(templated by Terraform) and read from there as plain environment/config
+values at startup, no manual copy/paste required. Region comes from backend
+config.
 
 ## Current-user shim
 

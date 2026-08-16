@@ -62,7 +62,7 @@ $OidcTrustPolicyJson = @{
     )
 } | ConvertTo-Json -Depth 6
 
-$OidcTrustPolicyJson | Out-File oidc-trust-policy.json -Encoding utf8
+$OidcTrustPolicyJson | Out-File oidc-trust-policy.json -Encoding ascii
 
 # Check for an existing Oidc role. If this errors, redirect stream 2 (errors) into stream 1 (output) with 2>&1.
 $getExistingOidcRoleResult = aws iam get-role --role-name $oidcRoleName 2>&1 | Out-String
@@ -71,6 +71,7 @@ if ($LASTEXITCODE -ne 0) {
     if ($getExistingOidcRoleResult -match "NoSuchEntity") {
         Write-Host "OIDC role not found. Creating the role."
         aws iam create-role --role-name $oidcRoleName --assume-role-policy-document file://oidc-trust-policy.json
+        Assert-Success "Unexpected error creating the OIDC role."
 
     } else {
         Write-Error "Unexpected Error retrieving role."
@@ -108,7 +109,7 @@ if ($LASTEXITCODE -ne 0) {
 
 aws s3api put-bucket-versioning --bucket $stateBucketName --versioning-configuration Status=Enabled
 Assert-Success "Unexpected error enabling versioning on the Terraform state bucket."
-aws s3api put-bucket-encryption --bucket $stateBucketName --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+aws s3api put-bucket-encryption --bucket $stateBucketName --server-side-encryption-configuration '{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"AES256\"}}]}'
 Assert-Success "Unexpected error enabling encryption on the Terraform state bucket."
 
 # Backend config to tell terraform where to store its own data
@@ -120,7 +121,7 @@ use_lockfile   = true
 encrypt        = true
 "@
 
-$backendConfigContent | Out-File ../terraform/backend.hcl -Encoding utf8
+$backendConfigContent | Out-File ../terraform/backend.hcl -Encoding ascii
 
 # Fetch the role ARN now that the role definitely exists, to push it to GitHub
 $oidcRole = aws iam get-role --role-name $oidcRoleName | ConvertFrom-Json
