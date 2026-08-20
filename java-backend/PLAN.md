@@ -15,6 +15,9 @@ beyond this list is in scope yet.
   swapping in real Cognito JWT auth later only touches one place.
 - Test users are created through a plain, no-auth "create user" endpoint
   (becomes the real signup endpoint later), not seed scripts.
+- Deploying this backend (vs. `node-backend/`) is controlled by the
+  `ACTIVE_BACKEND` GitHub repository variable, not a choice this plan makes;
+  see the root `README.md` architecture diagram.
 
 ## Gap found in DATA_MODEL.md
 

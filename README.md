@@ -5,29 +5,38 @@ A no-algorithm social media app. Purely stay in touch with your friends without 
 ## Architecture
 
 ```
-┌────────────┐   Cognito JWT    ┌──────────────────┐      ┌────────────────────┐
-│ frontend/  │ ───────────────▶ │   API Gateway     │ ───▶ │ node-backend/      │
-│ Expo / RN  │ ◀─────────────── │ (HTTP + WebSocket)│ ◀─── │ Lambdas (Node.js)  │
-└────────────┘                  └──────────────────┘      │                    │
-       │                                                    └─────────┬──────────┘
-       │ sign up / sign in                                            │
-       ▼                                               ┌────────────────┴────────────────┐
-┌────────────┐                                          ▼                                 ▼
-│ AWS Cognito │                                  ┌────────────┐                    ┌────────────┐
-└────────────┘                                    │  DynamoDB   │                    │     S3     │
-                                                   │ (all data)  │                    │  (media)   │
-                                                   └────────────┘                    └────────────┘
+                              ┌────────────┐
+                              │ frontend/  │
+                              │ Expo / RN  │
+                              └──────┬─────┘
+                     Cognito JWT     │      (ACTIVE_BACKEND picks one)
+                 ┌─────────────────┴─────────────────┐
+                 ▼                                     ▼
+      ┌──────────────────┐                   ┌──────────────────────┐
+      │   API Gateway      │                   │ java-backend/          │
+      │ (HTTP + WebSocket) │                   │ Spring Boot on EC2     │
+      └─────────┬──────────┘                   │ (started only for      │
+                 ▼                              │  testing, else stopped)│
+      ┌──────────────────────┐                 └───────────┬────────────┘
+      │ node-backend/          │                            │
+      │ Lambdas (Node.js)      │                            │
+      └───────────┬────────────┘                            │
+                  │                                          │
+                  └────────────────────┬─────────────────────┘
+                                        │ sign up / sign in, all data access
+                  ┌─────────────────────┼─────────────────────┐
+                  ▼                     ▼                     ▼
+           ┌────────────┐        ┌────────────┐        ┌────────────┐
+           │ AWS Cognito │        │  DynamoDB   │        │     S3     │
+           └────────────┘        │ (all data)  │        │  (media)   │
+                                  └────────────┘        └────────────┘
 ```
-
-`java-backend/` isn't part of this diagram: it's a normal Spring Boot app on a
-single EC2 instance, started only when testing and stopped otherwise, hit
-directly by the frontend. It reaches the same DynamoDB / S3 / Cognito
-resources.
 
 - **frontend/**: Expo / React Native app (feed, messages, notifications, profile, post creation)
 - **node-backend/**: Node.js, deployed as AWS Lambda behind API Gateway
-- **java-backend/**: Java (Spring Boot), deployed as a normal always-on app on a single EC2 instance
-- Both share [DATA_MODEL.md](./DATA_MODEL.md) at the repo root; they're alternate implementations of the same API, kept for comparison/learning, not meant to both run in production at once.
+- **java-backend/**: Java (Spring Boot), deployed as a normal always-on app on a single EC2 instance, started only when testing and stopped otherwise, hit directly by the frontend
+- Both backends share [DATA_MODEL.md](./DATA_MODEL.md) at the repo root and reach the same DynamoDB / S3 / Cognito resources; they're alternate implementations of the same API, kept for comparison/learning, not meant to both run in production at once.
+- Which one is live is controlled by the `ACTIVE_BACKEND` GitHub repository variable (`node` or `java`); deploy workflows read it to decide what to build/deploy/start, so switching is a config change, not a code change.
 - **infrastructure/**: Terraform IaC for all AWS resources
 - **.github/workflows/**: CI/CD pipelines (GitHub Actions, OIDC to AWS)
 
@@ -46,6 +55,7 @@ Lambda can reach DynamoDB, S3, Cognito, and API Gateway without a VPC.
 | Notifications   | **In-app only (DynamoDB)**                                   | No push notifications wanted, so no AWS SNS or Expo push integration needed.                                                                                                                                     |
 | IaC             | **Terraform**, remote state in S3 + DynamoDB lock table      | Standard, your stated requirement.                                                                                                                                                                               |
 | CI/CD           | **GitHub Actions + OIDC to AWS** (no long-lived access keys) | Best practice, avoids storing AWS secrets in GitHub.                                                                                                                                                             |
+| Backend selection | **`ACTIVE_BACKEND` GitHub repository variable** (`node` or `java`), read by deploy workflows | Only one backend is meant to run at a time; a repo variable makes switching a one-line config change instead of editing workflow files.                                                                        |
 
 ## Setup
 
