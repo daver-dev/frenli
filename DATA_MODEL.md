@@ -142,7 +142,7 @@ sortKey:       #METADATA
 
 userId          String   Cognito sub (UUID)
 username        String
-displayName     String
+displayName     String   optional
 bio             String   optional
 avatarKey       String   S3 object key, optional
 postCount       Number   see Counters section below

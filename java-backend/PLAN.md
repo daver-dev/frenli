@@ -124,10 +124,28 @@ which comment it belongs to, so the frontend can treat it the way it expects.
 Since the media bucket is private, image URLs in responses are pre-signed
 download URLs, generated the same way as the upload URLs.
 
-## Verification (no test suite yet)
+## Testing approach
 
-Use curl, Postman, or IntelliJ's built-in HTTP client, plus the AWS Console
-to inspect table contents directly:
+Integration tests use `@SpringBootTest` (full application context, so the
+real DynamoDB/S3 clients wire up via the SDK's default credential provider
+chain, same as the running app) plus `MockMvc` to drive requests through the
+controllers. Both come from `spring-boot-starter-webmvc-test`, already a
+dependency, no new library needed.
+
+Tests run against real AWS DynamoDB/S3 (the same dev table/bucket, not
+LocalStack or another local substitute), consistent with the rest of this
+plan's "real infra, not local emulation" approach. Each test is responsible
+for cleaning up whatever it writes. Since GSI reads are eventually
+consistent, a test that writes then immediately reads back through a GSI
+(e.g. the followers index) should poll with a short timeout (`Awaitility`)
+rather than assert immediately or use a fixed sleep.
+
+## Verification
+
+Automated integration tests cover the API surface (see "Testing approach"
+above). For infra-level checks not exercised by those tests, use curl,
+Postman, or IntelliJ's built-in HTTP client, plus the AWS Console to inspect
+table contents directly:
 
 - **Infra**: confirm the table's GSIs and the bucket's CORS setup in the
   Console after applying Terraform.
